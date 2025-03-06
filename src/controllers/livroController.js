@@ -1,6 +1,7 @@
 //Vamos centralizar a logica do que pode ser feito em um livro
 
 import livro from '../models/Livro.js';
+import {autor} from '../models/Autor.js';
 
 class LivroController {
     static async listarLivros(req, res) { //static é para n precisar instanciar a classe
@@ -23,9 +24,12 @@ class LivroController {
     }
 
     static async cadastrarLivro(req, res) {
+        const novoLivro = req.body //metodo que a biblioteca do moongose usa para criar um novo livro
         try {
-            const novoLivro = await livro.create(req.body); //metodo que a biblioteca do moongose usa para criar um novo livro
-            res.status(201).json({ message: 'Livro cadastrado com sucesso', livro: novoLivro });
+            const authorEncontrado = await autor.findById(novoLivro.autor);
+            const livroCompleto = { ...novoLivro, autor: { ...authorEncontrado._doc} }; //Pegando os dados de novoLivro e juntando com o autor
+            const livroCriado = await livro.create(livroCompleto);
+            res.status(201).json({ message: 'Livro cadastrado com sucesso', livro: livroCriado });
         } catch (erro) {
             res.status(500).error({ message: `${erro.message} - falha ao cadastrar livro` });
         }
@@ -48,6 +52,18 @@ class LivroController {
             res.status(200).json({ message: 'Livro excluido com sucesso'});
         } catch (erro) {
             res.status(500).json({ message: `${erro.message} - falha na exclusão do livro`  });
+        }
+    }
+
+    static async listarLivrosPorEditora(req, res) {
+        //http://localhost:3000/livros/busca?editora=Classicos assim fica a requisição
+        const editora = req.query.editora;
+        try{
+            const livrosPorEditora = await livro.find({editora: editora});
+            res.status(200).json(livrosPorEditora);
+        }
+        catch (erro){
+            res.status(500).json({ message: `${erro.message} - falha na busca`  });
         }
     }
 }
